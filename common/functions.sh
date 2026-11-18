@@ -116,7 +116,7 @@ install_script() {
     esac
   done
   case $1 in
-    "$MODPATH/post-fs-data.sh"|"$MODPATH/service.sh"|"$MODPATH/uninstall.sh"|"$MODPATH/action.sh") sed -i "s|^MODPATH=.*|MODPATH=\$MODDIR|" $1;; # MODPATH=MODDIR for these scripts (located in module directory)
+    "$MODPATH/post-fs-data.sh"|"$MODPATH/service.sh"|"$MODPATH/uninstall.sh"|"$MODPATH/action.sh") sed -i "s|^MODPATH=.*|MODPATH=\$MODDIR|" $1;;
     "$MODPATH/boot-completed.sh") $KSU && sed -i "s|^MODPATH=.*|MODPATH=\$MODDIR|" $1 || { cp_ch -n $1 $INPATH/$MODID-$(basename $1) 0755; rm -f $MODPATH/boot-completed.sh; };;
     *) cp_ch -n $1 $INPATH/$(basename $1) 0755;;
   esac
@@ -159,7 +159,6 @@ ui_print " "
 
 # Min KSU v0.6.6
 [ -z $KSU ] && KSU=false
-$KSU && { [ $KSU_VER_CODE -lt 11986 ] && require_new_ksu; }
 # APatch is fork of KSU, treat same
 [ -z $APATCH ] && APATCH=false
 [ "$APATCH" == "true" ] && KSU=true
@@ -172,16 +171,16 @@ set -x
 [ $API -lt 26 ] && DYNLIB=false
 [ -z $DYNLIB ] && DYNLIB=false
 [ -z $PARTOVER ] && PARTOVER=false
-[ -z $SYSTEM_ROOT ] && SYSTEM_ROOT=$SYSTEM_AS_ROOT # renamed in magisk v26.3
-[ -z $SERVICED ] && SERVICED=$NVBASE/service.d # removed in magisk v26.2
-[ -z $POSTFSDATAD ] && POSTFSDATAD=$NVBASE/post-fs-data.d # removed in magisk v26.2
+[ -z $SYSTEM_ROOT ] && SYSTEM_ROOT=$SYSTEM_AS_ROOT
+[ -z $SERVICED ] && SERVICED=$NVBASE/service.d
+[ -z $POSTFSDATAD ] && POSTFSDATAD=$NVBASE/post-fs-data.d
 INFO=$NVBASE/modules/.$MODID-files
 if $KSU; then
   MAGISKTMP="/mnt"
   ORIGDIR="$MAGISKTMP/mirror"
   mount_mirrors
 elif [ "$(magisk --path 2>/dev/null)" ]; then
-  if [ $MAGISK_VER_CODE -ge 27000 ]; then # Atomic Mount
+  if [ $MAGISK_VER_CODE -ge 27000 ]; then
     if [ -z $MAGISKTMP ]; then
       [ -d /sbin ] && MAGISKTMP=/sbin || MAGISKTMP=/debug_ramdisk
     fi
@@ -261,7 +260,6 @@ ui_print "- Installing"
 [ -f "$MODPATH/common/install.sh" ] && . $MODPATH/common/install.sh
 
 ui_print "   Installing for $ARCH SDK $API device..."
-# Remove comments from files and place them, add blank line to end if not already present
 for i in $(find $MODPATH -type f -name "*.sh" -o -name "*.prop" -o -name "*.rule"); do
   [ -f $i ] && { sed -i -e "/^#/d" -e "/^ *$/d" $i; [ "$(tail -1 $i)" ] && echo "" >> $i; } || continue
   case $i in
@@ -269,8 +267,8 @@ for i in $(find $MODPATH -type f -name "*.sh" -o -name "*.prop" -o -name "*.rule
     "$MODPATH/service.sh") install_script -l $i;;
     "$MODPATH/post-fs-data.sh") install_script -p $i;;
     "$MODPATH/action.sh") install_script $i;;
-    "$MODPATH/uninstall.sh") if [ -s $INFO ] || [ "$(head -n1 $MODPATH/uninstall.sh)" != "# Don't modify anything after this" ]; then                          
-                               cp -f $MODPATH/uninstall.sh $MODPATH/$MODID-uninstall.sh # Fallback script in case module manually deleted
+    "$MODPATH/uninstall.sh") if [ -s $INFO ] || [ "$(head -n1 $MODPATH/uninstall.sh)" != "# Don't modify anything after this" ]; then
+                               cp -f $MODPATH/uninstall.sh $MODPATH/$MODID-uninstall.sh
                                sed -i "1i[ -d \"\$MODPATH\" ] && exit 0" $MODPATH/$MODID-uninstall.sh
                                echo 'rm -f $0' >> $MODPATH/$MODID-uninstall.sh
                                install_script -l $MODPATH/$MODID-uninstall.sh
@@ -282,7 +280,7 @@ for i in $(find $MODPATH -type f -name "*.sh" -o -name "*.prop" -o -name "*.rule
   esac
 done
 
-$IS64BIT || for i in $(find $MODPATH/system -type d -name "lib64"); do rm -rf $i 2>/dev/null; done  
+$IS64BIT || for i in $(find $MODPATH/system -type d -name "lib64"); do rm -rf $i 2>/dev/null; done
 [ -d "/system/priv-app" ] || mv -f $MODPATH/system/priv-app $MODPATH/system/app 2>/dev/null
 [ -d "/system/xbin" ] || mv -f $MODPATH/system/xbin $MODPATH/system/bin 2>/dev/null
 if $DYNLIB; then
@@ -295,7 +293,6 @@ if $DYNLIB; then
     mv -f $MODPATH/system/$FILE $MODPATH/system/vendor/$FILE
     [ "$(ls -A `dirname $MODPATH/system/$FILE`)" ] || rm -rf `dirname $MODPATH/system/$FILE`
   done
-  # Delete empty lib folders (busybox find doesn't have this capability)
   toybox find $MODPATH/system/lib* -type d -empty -delete >/dev/null 2>&1
 fi
 
@@ -303,7 +300,7 @@ fi
 ui_print " "
 ui_print "- Setting Permissions"
 set_perm_recursive $MODPATH 0 0 0755 0644
-for i in /system/vendor /vendor /system/vendor/app /vendor/app /system/vendor/etc /vendor/etc /system/odm/etc /odm/etc /system/vendor/odm/etc /vendor/odm/etc /system/vendor/overlay /vendor/overlay; do
+for i in /system/vendor /vendor /system/vendor/app /vendor/app /system/vendor/etc /vendor/etc /system/odm/etc /odm/etc /system/vendor/odm/etc /vendor/odm/etc /system/vendor/overlay /vendor/overla[...]
   if [ -d "$MODPATH$i" ] && [ ! -L "$MODPATH$i" ]; then
     case $i in
       *"/vendor") set_perm_recursive $MODPATH$i 0 0 0755 0644 u:object_r:vendor_file:s0;;
